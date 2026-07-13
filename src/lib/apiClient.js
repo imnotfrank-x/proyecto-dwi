@@ -16,6 +16,17 @@ async function parseResponse(response) {
   }
 }
 
+async function handleExpiredSession() {
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // ignorar: la sesión ya está inválida
+  }
+
+  window.location.assign('/session-expired');
+  throw new Error(SESSION_EXPIRED_MESSAGE);
+}
+
 /**
  * Cliente HTTP con autenticación automática.
  * - Obtiene la sesión de Supabase y adjunta Authorization: Bearer {access_token}.
@@ -52,14 +63,12 @@ export async function apiClient(path, options = {}) {
     if (!error && data.session?.access_token) {
       response = await request(data.session.access_token);
     } else {
-      await supabase.auth.signOut();
-      throw new Error(SESSION_EXPIRED_MESSAGE);
+      await handleExpiredSession();
     }
   }
 
   if (response.status === 401) {
-    await supabase.auth.signOut();
-    throw new Error(SESSION_EXPIRED_MESSAGE);
+    await handleExpiredSession();
   }
 
   const payload = await parseResponse(response);
