@@ -7,6 +7,9 @@ import { productService } from '../services/productService.js';
 import ImageUploader from '../components/ImageUploader.jsx';
 import Toast from '../components/Toast.jsx';
 
+const LIMIT_MESSAGE = 'Has alcanzado el límite de 10 productos de tu plan gratuito.';
+const LIMIT_HELP = 'Puedes eliminar un producto existente o solicitar el Plan Pro para registrar más.';
+
 export default function ProductFormPage() {
   const { id } = useParams();
   const isEdit = Boolean(id);
@@ -20,6 +23,7 @@ export default function ProductFormPage() {
   } = useForm();
 
   const [catalogId, setCatalogId] = useState(null);
+  const [canCreateProduct, setCanCreateProduct] = useState(true);
   const [categories, setCategories] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(true);
@@ -40,6 +44,7 @@ export default function ProductFormPage() {
         }
         if (!active) return;
         setCatalogId(catalog.id);
+        setCanCreateProduct(catalog.can_create_product !== false);
 
         // Cargar categorías del catálogo: GET /api/categories?catalog_id=uuid
         const cats = await categoryService.getCategories(catalog.id);
@@ -69,6 +74,11 @@ export default function ProductFormPage() {
   }, [id, isEdit, navigate, reset]);
 
   const onSubmit = async (values) => {
+    if (!isEdit && !canCreateProduct) {
+      setError(`${LIMIT_MESSAGE} ${LIMIT_HELP}`);
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     try {
@@ -94,8 +104,13 @@ export default function ProductFormPage() {
       setToast({ type: 'success', message: 'Producto guardado correctamente' });
       window.setTimeout(() => navigate('/dashboard'), 700);
     } catch (err) {
-      setError(err.message);
-      setToast({ type: 'error', message: err.message });
+      const message =
+        err.code === 'PRODUCT_LIMIT_REACHED'
+          ? `${LIMIT_MESSAGE} ${LIMIT_HELP}`
+          : err.message;
+      if (err.code === 'PRODUCT_LIMIT_REACHED') setCanCreateProduct(false);
+      setError(message);
+      setToast({ type: 'error', message });
       setSubmitting(false);
     }
   };
@@ -120,6 +135,13 @@ export default function ProductFormPage() {
           <h1 className="font-serif text-2xl font-bold text-brand-900">
             {isEdit ? 'Editar producto' : 'Nuevo producto'}
           </h1>
+
+          {!isEdit && !canCreateProduct && (
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p className="font-medium">{LIMIT_MESSAGE}</p>
+              <p>{LIMIT_HELP}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
             <div>
@@ -213,8 +235,8 @@ export default function ProductFormPage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={submitting}
-                className="rounded-lg bg-brand-600 px-6 py-2.5 font-medium text-white hover:bg-brand-900 disabled:opacity-60"
+                disabled={submitting || (!isEdit && !canCreateProduct)}
+                className="rounded-lg bg-brand-600 px-6 py-2.5 font-medium text-white hover:bg-brand-900 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? 'Guardando…' : 'Guardar'}
               </button>
