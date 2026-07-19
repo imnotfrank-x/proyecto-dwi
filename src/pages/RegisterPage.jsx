@@ -50,9 +50,9 @@ export default function RegisterPage() {
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
           <h1 className="font-serif text-2xl font-bold text-brand-900">¡Cuenta creada!</h1>
           <p className="mt-3 text-gray-600">
-            Tu cuenta fue creada correctamente. Te enviamos un correo de bienvenida. Ya puedes
-            iniciar sesión.
-          </p>
+  Tu cuenta fue creada correctamente. Te enviamos un correo de bienvenida. Ya puedes
+  iniciar sesión.
+</p>
           <Link
             to="/login"
             className="mt-6 inline-block rounded-lg bg-brand-600 px-5 py-2.5 font-medium text-white hover:bg-brand-900"
